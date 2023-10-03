@@ -15,12 +15,15 @@ activity_log = config.LOG_FILE_PATH
 log_directory = config.LOG_DIRECTORY
 
 def setup_logging(log_file_path):
+    if not os.path.exists(log_file_path):
+        with open(log_file_path, 'w'):
+            pass  # Create an empty log file if it doesn't exist
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s: %(message)s',
         handlers=[logging.FileHandler(log_file_path, mode='a')]
     )
-
+    
 def main():
     setup_logging(activity_log)
 
@@ -28,6 +31,16 @@ def main():
     json_file_path = json_matches
     output_file_path = csv_matches
     log_file_path = activity_log
+
+    # Define the callback function for updating matches files
+    def update_matches_files():
+        try:
+            logging.info("Updating JSON and CSV matches...")
+            save_common_values_to_json()
+            entry_matcher.find_and_save_matching_entries()
+            logging.info("JSON and CSV matches updated.")
+        except Exception as e:
+            logging.error(f"Error updating matches files: {str(e)}")
 
     try:
         logging.info("Calling JSON generation script...")
@@ -49,7 +62,7 @@ def main():
         logging.info(f"Success! {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")      
 
         # Start monitoring the log files within the specified log_directory for changes
-        log_observer = log_monitor.start_file_monitoring(entry_matcher, log_directory, activity_log)
+        log_observer = log_monitor.start_file_monitoring(entry_matcher, log_directory, activity_log, update_callback=update_matches_files)
 
         try:
             while True:
