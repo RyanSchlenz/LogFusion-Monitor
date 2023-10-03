@@ -1,46 +1,54 @@
 # log_monitoring.py
-These scripts work together to process JSON log files, find common values, and monitor log file changes in real-time, logging added and erased data.
+These modules and the main script work together to process JSON log files, perform data comparisons based on IP address, and monitor log file changes, all while logging activities and errors in a separate activity log.
 
-**entry_matcher script:**
-EntryMatcher Class:
-This class is responsible for matching IP addresses extracted from JSON log entries with a set of IP addresses from a CSV file and saving the matching entries to an output file.
 
-Methods:
-  __init__(self, csv_file_path, json_file_path, output_file_path): Initializes the class with paths to the CSV file, JSON file, and output file.
-  extract_ip_addresses(self, json_str): Extracts the IP address from a JSON log entry string.
+**Modules Explained:**
 
-  find_and_save_matching_entries(self): Compares IP addresses between the JSON log entries and CSV data, saving matching entries to the output file.
+**entry_matcher module:**
+This module defines a class called EntryMatcher, which is responsible for matching data between a CSV file and a JSON file.
+
+The EntryMatcher class has methods to:
+  Initialize the object with paths to CSV, JSON, and output files.
+  Extract IP addresses from JSON data.
+  Find and save matching entries between the CSV and JSON files.
+  It uses the csv and json modules for file handling and JSON decoding.
+
 
 **json_log_processing Module:**
-Purpose: 
-This module provides functions for processing JSON log data.
+This module provides functions for processing JSON log files. It also interacts with JSON log files and is used for data comparison and extraction.
 
-Functions:
-open_json_log_file(*paths): Opens JSON log files and yields their contents as JSON strings.
+open_json_log_file(*paths): Opens and reads JSON log files specified by paths. It yields JSON log entries as strings.
 
-parse_json_log(log_entry): Parses a JSON log entry and extracts specific user-related data.
+parse_json_log(log_entry): Parses a JSON log entry and extracts specific fields.
 
-compare_json(*args): Compares lists of JSON log entries and returns common values.
+compare_json(*args): Compares multiple lists of JSON data and returns common values.
 
-save_common_values_to_json(): Compares JSON log files specified in a configuration and saves common values to a JSON file.
+save_common_values_to_json(): Calls functions to open JSON log files, compare data, and save common values to a JSON file.
 
 
 **log_monitor Module:**
-Purpose: 
-This module handles real-time monitoring of log files for changes.
+This module handles monitoring changes in log files within a specified directory and provides a mechanism to detect and log changes in log files.
 
-Classes:
-LogFileEventHandler: Subclass of FileSystemEventHandler, responsible for detecting file modifications and logging added/erased data.
+LogFileEventHandler is a class that inherits from FileSystemEventHandler. It watches for changes in log files (with specific extensions like .log, .json, .csv) and logs added and erased data.
 
-start_file_monitoring(entry_matcher, log_directory, activity_log_path): Starts monitoring log files for changes.
+start_file_monitoring() initializes file monitoring using the watchdog library and schedules the LogFileEventHandler.
+
 
 **main script:**
-Purpose: 
-The main entry point of the script, orchestrating the entire log processing and monitoring workflow.
+This is the main script that orchestrates various tasks using the other modules.
 
-**Steps:**
-Sets up logging to record activities.
-Calls the save_common_values_to_json function to generate common values from JSON log files.
-Waits for the JSON file to be created (waits up to 60 seconds).
-If the JSON file exists, it initializes the EntryMatcher, performs matching, and starts log file monitoring.
-The script runs continuously, with log monitoring active, until interrupted by a keyboard interrupt (Ctrl+C).
+It sets up logging to record script activities.
+
+Calls the JSON generation script (save_common_values_to_json) to generate or update JSON data.
+
+Waits for the JSON file to be created or updated, with a timeout of 60 seconds.
+
+If the JSON file exists, it initializes the EntryMatcher class to compare data between CSV and JSON files.
+
+Calls the find_and_save_matching_entries method of EntryMatcher to perform the comparison and save matching entries.
+
+Starts monitoring log files using the log_monitor module, providing an update callback function (update_matches_files) that is called when changes are detected.
+
+Handles a KeyboardInterrupt (Ctrl+C) to gracefully exit the script.
+
+Logs relevant information about the script's progress and completion.
