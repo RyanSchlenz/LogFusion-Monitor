@@ -5,12 +5,14 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 class LogFileEventHandler(FileSystemEventHandler):
-    def __init__(self, entry_matcher, log_directory, activity_log_path, previous_contents):
+    def __init__(self, entry_matcher, log_directory, activity_log_path, previous_contents, update_callback):
         super().__init__()
         self.entry_matcher = entry_matcher
         self.log_directory = log_directory
         self.activity_log_path = activity_log_path
         self.previous_contents = previous_contents
+        self.update_callback = update_callback
+
 
     def on_modified(self, event):
         if event.is_directory:
@@ -47,6 +49,10 @@ class LogFileEventHandler(FileSystemEventHandler):
             # Update the previous contents for future comparisons
             self.previous_contents[event.src_path] = new_contents
 
+        # After detecting changes, call the update_callback
+        if self.update_callback:
+            self.update_callback()
+
     @staticmethod
     def get_changed_data(previous, new):
         d = difflib.Differ()
@@ -57,7 +63,7 @@ class LogFileEventHandler(FileSystemEventHandler):
 
         return added_data, erased_data
 
-def start_file_monitoring(entry_matcher, log_directory, activity_log_path):
+def start_file_monitoring(entry_matcher, log_directory, activity_log_path, update_callback=None):
     # Initialize the previous_contents dictionary with the current contents of monitored files
     previous_contents = {}
     for root, _, files in os.walk(log_directory):
@@ -67,7 +73,7 @@ def start_file_monitoring(entry_matcher, log_directory, activity_log_path):
                 previous_contents[file_path] = f.read()
 
     # Start monitoring the log files within the specified log_directory for changes
-    log_file_handler = LogFileEventHandler(entry_matcher, log_directory, activity_log_path, previous_contents)
+    log_file_handler = LogFileEventHandler(entry_matcher, log_directory, activity_log_path, previous_contents,update_callback)
     log_observer = Observer()
     log_observer.schedule(log_file_handler, path=log_directory, recursive=False)
     log_observer.start()
